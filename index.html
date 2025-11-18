@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>양자 배터리 최적 펄스 시뮬레이션</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Nanum Gothic', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        /* 로딩 스피너 CSS */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 에러 메시지 스타일 */
+        #error-message {
+            display: none;
+            background-color: #ffebeB;
+            color: #c00;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #f99;
+            margin-top: 16px;
+            text-align: center;
+        }
+        
+    </style>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex items-center justify-center p-4">
+
+    <div class="container mx-auto max-w-5xl"> <!-- (수정) 최대 너비 3XL -> 5XL로 증가 -->
+
+        <!-- ========================== -->
+        <!-- 페이지 1: 설정 -->
+        <!-- ========================== -->
+        <div id="page-1" class="bg-white p-8 rounded-xl shadow-lg transition-all max-w-3xl mx-auto"> <!-- 페이지 1은 3XL 유지 -->
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">양자 배터리 최적 펄스 시뮬레이션</h1>
+            <p class="text-gray-600 mb-8">시뮬레이션을 위한 파라미터를 선택하세요.</p>
+
+            <div class="space-y-8">
+                <!-- 옵션 1: 큐비트 개수 (수정) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="qubit-slider" class="font-semibold text-gray-700">큐비트 개수 (Number of Qubits)</label>
+                        <span id="qubit-value" class="text-blue-600 font-bold text-lg bg-blue-50 px-3 py-1 rounded-md">8</span>
+                    </div>
+                    <input 
+                        id="qubit-slider"
+                        type="range" 
+                        min="2" 
+                        max="8"  
+                        value="8" 
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    >
+                    <div class="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>2</span>
+                        <span>8</span>
+                    </div>
+                </div>
+
+                <!-- 옵션 2: 결합 강도 (변경 없음) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="strength-slider" class="font-semibold text-gray-700">결합 강도 (Coupling Strength)</label>
+                        <span id="strength-value" class="text-indigo-600 font-bold text-lg bg-indigo-50 px-3 py-1 rounded-md">1.0</span>
+                    </div>
+                    <input 
+                        id="strength-slider"
+                        type="range" 
+                        min="0.1" 
+                        max="2.0" 
+                        value="1.0" 
+                        step="0.1"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    >
+                    <div class="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>0.1</span>
+                        <span>2.0</span>
+                    </div>
+                </div>
+
+                <!-- 옵션 3: 모델 선택 (변경 없음) -->
+                <div>
+                    <label class="font-semibold text-gray-700 mb-3 block">모델 선택 (Select Model)</label>
+                    <fieldset class="grid grid-cols-2 gap-4">
+                        <label for="model-mlp" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                            <input type="radio" value="MLP" name="model-select" id="model-mlp" class="sr-only">
+                            MLP
+                        </label>
+                        <label for="model-mlp-set" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                            <input type="radio" value="MLP (Set)" name="model-select" id="model-mlp-set" class="sr-only">
+                            MLP (Set)
+                        </label>
+                        <label for="model-gcn" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                            <input type="radio" value="GCN" name="model-select" id="model-gcn" class="sr-only" checked>
+                            GCN
+                        </label>
+                        <label for="model-gat" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                            <input type="radio" value="GAT" name="model-select" id="model-gat" class="sr-only">
+                            GAT
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- 시작 버튼 (변경 없음) -->
+            <div class="mt-10">
+                <button id="start-button" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 disabled:bg-gray-400">
+                    <span id="start-button-text">시뮬레이션 시작 (Start)</span>
+                    <div id="loading-spinner" class="loader hidden"></div>
+                </button>
+            </div>
+            
+            <!-- 에러 메시지 표시 영역 (변경 없음) -->
+            <div id="error-message"></div>
+        </div>
+
+        <!-- ========================== -->
+        <!-- 페이지 2: 결과 -->
+        <!-- ========================== -->
+        <div id="page-2" class="bg-white p-8 rounded-xl shadow-lg transition-all hidden">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">시뮬레이션 결과</h1>
+            <p class="text-gray-600 mb-8 text-sm sm:text-base">
+                선택한 옵션: 
+                큐비트 <span id="result-qubits" class="font-semibold text-blue-600"></span>개, 
+                강도 <span id="result-strength" class="font-semibold text-indigo-600"></span>,
+                모델 <span id="result-model" class="font-semibold text-green-600"></span>
+            </p>
+
+            <!-- 펄스 플롯 (차트) -->
+            <div class="mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 text-center mb-4">
+                    최적 충전 펄스 (Optimal Charging Pulse)
+                </h2>
+                <div class="relative h-64 md:h-80">
+                    <canvas id="pulse-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- CSV 다운로드 버튼 -->
+            <div class="mb-10 text-center">
+                <button id="download-csv" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 ease-in-out disabled:bg-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block -mt-1 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    펄스 데이터 다운로드 (.csv)
+                </button>
+            </div>
+
+
+            <!-- ✨ (수정) 결과 섹션 레이아웃 변경 (요청 3) -->
+            
+            
+
+            <!-- 기존 3가지 플롯 (가로 3단) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- 플롯 1 -->
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">최종 저장 에너지</h2>
+                    <img id="plot-energy" src="https://placehold.co/400x300/EBF4FF/4A90E2?text=Waiting..." alt="최종 저장 에너지 플롯" class="w-full rounded-md object-cover">
+                </div>
+                
+                <!-- 플롯 2 -->
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">학습 시간</h2>
+                    <img id="plot-time" src="https://placehold.co/400x300/E6F7F0/34A853?text=Waiting..." alt="학습 시간 플롯" class="w-full rounded-md object-cover">
+                </div>
+                
+                <!-- 플롯 3 -->
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">모델 파라미터 수</h2>
+                    <img id="plot-params" src="https://placehold.co/400x300/FFF3E0/FBBC05?text=Waiting..." alt="모델 파라미터 수 플롯" class="w-full rounded-md object-cover">
+                </div>
+
+            </div>
+
+            <!-- 돌아가기 버튼 -->
+            <div class="mt-10">
+                <button id="back-button" class="w-full bg-gray-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 transition-all duration-300 ease-in-out max-w-lg mx-auto block">
+                    설정으로 돌아가기 (Back to Settings)
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Three.js 스크립트는 DOMContentLoaded 밖에 전역으로 정의되어야 합니다.
+        // (CDN을 통해 THREE 객체가 window에 등록되기 때문)
+
+        
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 페이지 및 공통 요소 ---
+            const page1 = document.getElementById('page-1');
+            const page2 = document.getElementById('page-2');
+            const startButton = document.getElementById('start-button');
+            const startButtonText = document.getElementById('start-button-text');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const backButton = document.getElementById('back-button');
+            const errorMessage = document.getElementById('error-message');
+            const downloadCsvButton = document.getElementById('download-csv');
+
+            // --- 페이지 1 요소 (입력) ---
+            const qubitSlider = document.getElementById('qubit-slider');
+            const qubitValue = document.getElementById('qubit-value');
+            const strengthSlider = document.getElementById('strength-slider');
+            const strengthValue = document.getElementById('strength-value');
+
+            // --- 페이지 2 요소 (출력) ---
+            const resultQubits = document.getElementById('result-qubits');
+            const resultStrength = document.getElementById('result-strength');
+            const resultModel = document.getElementById('result-model');
+            const imgEnergy = document.getElementById('plot-energy');
+            const imgTime = document.getElementById('plot-time');
+            const imgParams = document.getElementById('plot-params');
+
+            // --- Chart.js 인스턴스 ---
+            let pulseChartInstance = null; 
+            let currentPulseData = [];
+
+            // 백엔드 서버 주소 (app.py가 실행되는 곳)
+            const API_ENDPOINT = 'http://127.0.0.1:5000/simulate';
+
+            // 슬라이더 값 실시간 업데이트
+            qubitSlider.addEventListener('input', (e) => {
+                qubitValue.textContent = e.target.value;
+            });
+
+            strengthSlider.addEventListener('input', (e) => {
+                strengthValue.textContent = parseFloat(e.target.value).toFixed(1);
+            });
+
+            // 시작 버튼 클릭 이벤트 (비동기 함수로 변경)
+            startButton.addEventListener('click', async () => {
+                // 현재 설정 값 가져오기
+                const qubits = parseInt(qubitSlider.value, 10);
+                const strength = parseFloat(strengthSlider.value);
+                const model = document.querySelector('input[name="model-select"]:checked').value;
+
+                // 로딩 상태 표시
+                startButton.disabled = true;
+                startButtonText.textContent = '모델 연산 중... (Calculating...)';
+                loadingSpinner.classList.remove('hidden');
+                errorMessage.style.display = 'none'; 
+
+                try {
+                    // --- 실제 백엔드 연동 (Fetch API 사용) ---
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            qubits: qubits,
+                            strength: strength,
+                            model: model,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`서버 오류: ${response.statusText} (백엔드 서버가 실행 중인지 확인하세요)`);
+                    }
+
+                    const data = await response.json();
+
+                    // --- 결과 표시 ---
+                    currentPulseData = data.optimalPulse || [];
+
+                    // 1. 페이지 2 상단 요약 텍스트 업데이트
+                    resultQubits.textContent = qubits;
+                    resultStrength.textContent = strength.toFixed(1);
+                    resultModel.textContent = model;
+
+                    // 2. 최적 펄스 차트 그리기
+                    renderPulseChart(currentPulseData);
+
+                    // 3. 나머지 3개 결과 플롯 이미지 업데이트
+                    const energyText = `Final Energy: ${data.finalEnergy}`;
+                    const timeText = `Time: ${data.learningTime}s`;
+                    const paramsText = `Params: ${data.modelParams.toLocaleString()}`;
+
+                    imgEnergy.src = `https://placehold.co/400x300/EBF4FF/4A90E2?text=${encodeURIComponent(energyText)}`;
+                    imgTime.src = `https://placehold.co/400x300/E6F7F0/34A853?text=${encodeURIComponent(timeText)}`;
+                    imgParams.src = `https://placehold.co/400x300/FFF3E0/FBBC05?text=${encodeURIComponent(paramsText)}`;
+
+                    // 4. 페이지 전환
+                    page1.classList.add('hidden');
+                    page2.classList.remove('hidden');
+
+                    
+
+
+                } catch (error) {
+                    console.error('Fetch Error:', error);
+                    errorMessage.textContent = `시뮬레이션 실패: ${error.message}. 'app.py'가 실행 중인지 확인하세요.`;
+                    errorMessage.style.display = 'block';
+                } finally {
+                    // 성공/실패 여부와 관계없이 버튼 상태 복원
+                    startButton.disabled = false;
+                    startButtonText.textContent = '시뮬레이션 시작 (Start)';
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            // 돌아가기 버튼 클릭 이벤트
+            backButton.addEventListener('click', () => {
+                page2.classList.add('hidden');
+                page1.classList.remove('hidden');
+                
+                
+            });
+
+            // --- CSV 다운로드 버튼 이벤트 리스너 ---
+            downloadCsvButton.addEventListener('click', () => {
+                if (currentPulseData.length === 0) {
+                    errorMessage.textContent = '먼저 시뮬레이션을 실행해주세요.';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                try {
+                    let csvContent = "Time Step,Amplitude\n"; // 헤더
+                    currentPulseData.forEach((amplitude, index) => {
+                        csvContent += `${index},${amplitude}\n`;
+                    });
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "optimal_pulse.csv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error("CSV Download Error:", error);
+                    errorMessage.textContent = 'CSV 파일 생성 중 오류가 발생했습니다.';
+                    errorMessage.style.display = 'block';
+                }
+            });
+
+            // --- Chart.js 렌더링 함수 ---
+            function renderPulseChart(pulseData) {
+                const ctx = document.getElementById('pulse-chart').getContext('2d');
+                if (pulseChartInstance) {
+                    pulseChartInstance.destroy();
+                }
+                const labels = Array.from({ length: pulseData.length }, (_, i) => i);
+                pulseChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Pulse Amplitude',
+                            data: pulseData,
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Time Step' } },
+                            y: { title: { display: true, text: 'Amplitude' } }
+                        }
+                    }
+                });
+            }
+
+            
+
+        });
+    </script>
+
+</body>
+</html>

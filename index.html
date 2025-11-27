@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양자 배터리 최적 펄스 시뮬레이션</title>
+    <title>그래프 신경망 기반 강화학습 양자 배터리 초흡수 분석</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -53,7 +53,135 @@
             margin-top: 16px;
             text-align: center;
         }
-        
+
+        .timeline-cell {
+            border-radius: 0.2rem;
+            border: 2px solid transparent;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .timeline-cell-active {
+            border-color: rgba(251, 191, 36, 0.9);
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
+        }
+
+        .timeline-chart-container {
+            width: 100%;
+        }
+
+        .timeline-chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            width: 100%;
+            min-height: 11.5rem;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+            gap: 0.65rem;
+        }
+
+        #page-2 .rounded-lg {
+            border-radius: 0.3rem;
+        }
+
+        #page-2 .rounded-xl {
+            border-radius: 0.6rem;
+        }
+
+        .panel-square {
+            border-radius: 0.35rem;
+        }
+
+        .panel-square.shadow-sm {
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+        }
+
+        .button-square {
+            border-radius: 0.35rem !important;
+        }
+
+        .model-option {
+            border-radius: 0.35rem;
+            border-width: 1px;
+        }
+
+        .metric-card-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+
+        .metric-card-value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .metric-card-footnote {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .metric-card-energy {
+            border-top-width: 3px;
+            border-top-color: #2563eb;
+        }
+
+        .metric-card-energy .metric-card-footnote {
+            color: #1d4ed8;
+        }
+
+        .metric-card-time {
+            border-top-width: 3px;
+            border-top-color: #0f766e;
+        }
+
+        .metric-card-time .metric-card-footnote {
+            color: #0f766e;
+        }
+
+        .metric-card-params {
+            border-top-width: 3px;
+            border-top-color: #b45309;
+        }
+
+        .metric-card-params .metric-card-footnote {
+            color: #b45309;
+        }
+
+        .bloch-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .bloch-wrapper::before {
+            content: '';
+            display: block;
+            padding-top: 100%;
+        }
+
+        .bloch-wrapper canvas {
+            position: absolute;
+            inset: 0;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex items-center justify-center p-4">
@@ -64,7 +192,11 @@
         <!-- 페이지 1: 설정 -->
         <!-- ========================== -->
         <div id="page-1" class="bg-white p-8 rounded-xl shadow-lg transition-all max-w-3xl mx-auto"> <!-- 페이지 1은 3XL 유지 -->
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">양자 배터리 최적 펄스 시뮬레이션</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <!-- 그래프 신경망 기반 강화학습
+                <span class="block">양자 배터리 초흡수 분석</span> -->
+                그래프 신경망 기반 강화학습 양자 배터리 초흡수 분석
+            </h1>
             <p class="text-gray-600 mb-8">시뮬레이션을 위한 파라미터를 선택하세요.</p>
 
             <div class="space-y-8">
@@ -86,6 +218,7 @@
                         <span>2</span>
                         <span>8</span>
                     </div>
+                    <p class="text-sm text-gray-500 mt-2">지원 데이터: 2, 3, 4, 6, 8</p>
                 </div>
 
                 <!-- 옵션 2: 결합 강도 (변경 없음) -->
@@ -113,19 +246,19 @@
                 <div>
                     <label class="font-semibold text-gray-700 mb-3 block">모델 선택 (Select Model)</label>
                     <fieldset class="grid grid-cols-2 gap-4">
-                        <label for="model-mlp" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                        <label for="model-mlp" class="block w-full p-4 text-center text-gray-600 border border-gray-300 model-option cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
                             <input type="radio" value="MLP" name="model-select" id="model-mlp" class="sr-only">
                             MLP
                         </label>
-                        <label for="model-mlp-set" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                        <label for="model-mlp-set" class="block w-full p-4 text-center text-gray-600 border border-gray-300 model-option cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
                             <input type="radio" value="MLP (Set)" name="model-select" id="model-mlp-set" class="sr-only">
                             MLP (Set)
                         </label>
-                        <label for="model-gcn" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                        <label for="model-gcn" class="block w-full p-4 text-center text-gray-600 border border-gray-300 model-option cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
                             <input type="radio" value="GCN" name="model-select" id="model-gcn" class="sr-only" checked>
                             GCN
                         </label>
-                        <label for="model-gat" class="block w-full p-4 text-center text-gray-600 border border-gray-300 rounded-lg cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
+                        <label for="model-gat" class="block w-full p-4 text-center text-gray-600 border border-gray-300 model-option cursor-pointer transition-all hover:bg-gray-50 has-[:checked]:border-blue-600 has-[:checked]:shadow-md has-[:checked]:bg-blue-50 has-[:checked]:font-semibold has-[:checked]:text-blue-700">
                             <input type="radio" value="GAT" name="model-select" id="model-gat" class="sr-only">
                             GAT
                         </label>
@@ -135,9 +268,10 @@
 
             <!-- 시작 버튼 (변경 없음) -->
             <div class="mt-10">
-                <button id="start-button" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 disabled:bg-gray-400">
+                <button id="start-button" class="w-full bg-blue-600 text-white font-bold py-3 px-6 button-square shadow-md hover:bg-blue-700 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 disabled:bg-gray-400">
                     <span id="start-button-text">시뮬레이션 시작 (Start)</span>
                     <div id="loading-spinner" class="loader hidden"></div>
+                    <span id="progress-text" class="hidden text-sm font-semibold">0%</span>
                 </button>
             </div>
             
@@ -157,8 +291,13 @@
                 모델 <span id="result-model" class="font-semibold text-green-600"></span>
             </p>
 
+            <div id="superabsorption-highlight" class="mb-6 hidden border border-amber-200 bg-amber-50/70 panel-square px-5 py-4 shadow-sm">
+                <h2 class="text-lg font-semibold text-amber-700 mb-1">초흡수 이득</h2>
+                <p id="superabsorption-text" class="text-sm text-amber-700 leading-relaxed"></p>
+            </div>
+
             <!-- 펄스 플롯 (차트) -->
-            <div class="mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+            <div class="mb-6 border border-gray-200 panel-square p-4 bg-gray-50 shadow-sm">
                 <h2 class="text-xl font-semibold text-gray-800 text-center mb-4">
                     최적 충전 펄스 (Optimal Charging Pulse)
                 </h2>
@@ -167,9 +306,57 @@
                 </div>
             </div>
 
+            <!-- Bloch 구면 및 타임라인 (임시 시각화 블록) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10" data-feature="bloch-insight">
+                <div class="border border-gray-200 panel-square p-4 bg-white shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3">Bloch 구면 충전 궤적</h2>
+                    <div class="bloch-wrapper">
+                        <canvas id="bloch-chart"></canvas>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">펄스 누적량을 기반으로 한 2D Bloch 투영 궤적입니다.</p>
+                </div>
+                <div class="border border-gray-200 panel-square p-4 bg-white shadow-sm flex flex-col">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3">충전 타임라인 요약</h2>
+                    <div class="timeline-chart-container relative h-40 sm:h-48 w-full">
+                        <canvas id="timeline-chart"></canvas>
+                    </div>
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-4 text-sm text-gray-600">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-6">
+                            <span>현재 단계 <span id="timeline-current-step" class="font-semibold text-blue-600">-</span>/<span id="timeline-total-steps" class="font-semibold text-gray-500">-</span></span>
+                            <span class="mt-1 sm:mt-0">최대 진폭 <span id="timeline-peak-amp" class="font-semibold text-amber-600">-</span></span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <button id="timeline-play-toggle" class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" type="button" aria-label="Play timeline">
+                                <span id="timeline-play-icon" class="text-lg">▶</span>
+                            </button>
+                            <span id="timeline-play-status" class="text-gray-500">정지</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden w-full">
+                        <div id="timeline-progress-bar" class="h-full bg-blue-500" style="width: 0%;"></div>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500 leading-relaxed">막대 그래프는 타임스텝별 진폭 크기를 나타내며, 현재 재생 중인 단계는 노란색으로 강조 표시됩니다.</p>
+                </div>
+            </div>
+
+            <!-- 모델 종합 점수 막대그래프 (GCN 우세도 강조) -->
+            <div class="mb-8 border border-gray-200 panel-square p-5 bg-white shadow-sm" data-feature="model-score-bar">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">모델 종합 평가 지표</h2>
+                    <label class="flex items-center text-xs text-gray-500 space-x-2">
+                        <input id="model-score-toggle" type="checkbox" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                        <span>결과 섹션에 표시</span>
+                    </label>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="model-score-chart"></canvas>
+                </div>
+                <p class="mt-3 text-xs text-gray-500">S' = α × (Performance × Stability) / (Training Time × Parameters). 현재 값은 실험 데이터 기반으로 추정된 정규화 점수입니다.</p>
+            </div>
+
             <!-- CSV 다운로드 버튼 -->
-            <div class="mb-10 text-center">
-                <button id="download-csv" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 ease-in-out disabled:bg-gray-400">
+            <div class="mb-8 text-center">
+                <button id="download-csv" class="bg-green-600 text-white font-bold py-2 px-5 button-square shadow-md hover:bg-green-700 transition-all duration-300 ease-in-out disabled:bg-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block -mt-1 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
@@ -183,31 +370,29 @@
             
 
             <!-- 기존 3가지 플롯 (가로 3단) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <!-- 플롯 1 -->
-                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
-                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">최종 저장 에너지</h2>
-                    <img id="plot-energy" src="https://placehold.co/400x300/EBF4FF/4A90E2?text=Waiting..." alt="최종 저장 에너지 플롯" class="w-full rounded-md object-cover">
-                </div>
-                
-                <!-- 플롯 2 -->
-                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
-                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">학습 시간</h2>
-                    <img id="plot-time" src="https://placehold.co/400x300/E6F7F0/34A853?text=Waiting..." alt="학습 시간 플롯" class="w-full rounded-md object-cover">
-                </div>
-                
-                <!-- 플롯 3 -->
-                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
-                    <h2 class="text-lg font-semibold text-gray-800 text-center mb-3">모델 파라미터 수</h2>
-                    <img id="plot-params" src="https://placehold.co/400x300/FFF3E0/FBBC05?text=Waiting..." alt="모델 파라미터 수 플롯" class="w-full rounded-md object-cover">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="metric-card metric-card-energy">
+                    <span class="metric-card-label">최종 저장 에너지</span>
+                    <span id="plot-energy-value" class="metric-card-value">데이터 대기 중</span>
+                    <span id="plot-energy-subtext" class="metric-card-footnote"></span>
                 </div>
 
+                <div class="metric-card metric-card-time">
+                    <span class="metric-card-label">학습 시간</span>
+                    <span id="plot-time-value" class="metric-card-value">데이터 대기 중</span>
+                    <span class="metric-card-footnote">실행 시간 (s)</span>
+                </div>
+
+                <div class="metric-card metric-card-params">
+                    <span class="metric-card-label">모델 파라미터 수</span>
+                    <span id="plot-params-value" class="metric-card-value">데이터 대기 중</span>
+                    <span class="metric-card-footnote">학습 가능한 파라미터</span>
+                </div>
             </div>
 
             <!-- 돌아가기 버튼 -->
             <div class="mt-10">
-                <button id="back-button" class="w-full bg-gray-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 transition-all duration-300 ease-in-out max-w-lg mx-auto block">
+                <button id="back-button" class="w-full bg-gray-600 text-white font-bold py-3 px-6 button-square shadow-md hover:bg-gray-700 transition-all duration-300 ease-in-out max-w-lg mx-auto block">
                     설정으로 돌아가기 (Back to Settings)
                 </button>
             </div>
@@ -229,6 +414,7 @@
             const startButton = document.getElementById('start-button');
             const startButtonText = document.getElementById('start-button-text');
             const loadingSpinner = document.getElementById('loading-spinner');
+            const progressText = document.getElementById('progress-text');
             const backButton = document.getElementById('back-button');
             const errorMessage = document.getElementById('error-message');
             const downloadCsvButton = document.getElementById('download-csv');
@@ -243,38 +429,201 @@
             const resultQubits = document.getElementById('result-qubits');
             const resultStrength = document.getElementById('result-strength');
             const resultModel = document.getElementById('result-model');
-            const imgEnergy = document.getElementById('plot-energy');
-            const imgTime = document.getElementById('plot-time');
-            const imgParams = document.getElementById('plot-params');
+            const energyValueEl = document.getElementById('plot-energy-value');
+            const energySubtextEl = document.getElementById('plot-energy-subtext');
+            const timeValueEl = document.getElementById('plot-time-value');
+            const paramsValueEl = document.getElementById('plot-params-value');
+            const blochChartCanvas = document.getElementById('bloch-chart');
+            const superabsorptionHighlight = document.getElementById('superabsorption-highlight');
+            const superabsorptionText = document.getElementById('superabsorption-text');
+            const timelineChartCanvas = document.getElementById('timeline-chart');
+            const timelineCurrentStep = document.getElementById('timeline-current-step');
+            const timelineTotalSteps = document.getElementById('timeline-total-steps');
+            const timelinePeakAmp = document.getElementById('timeline-peak-amp');
+            const timelineProgressBar = document.getElementById('timeline-progress-bar');
+            const modelScoreCanvas = document.getElementById('model-score-chart');
+            const modelScoreToggle = document.getElementById('model-score-toggle');
+            const timelinePlayToggle = document.getElementById('timeline-play-toggle');
+            const timelinePlayIcon = document.getElementById('timeline-play-icon');
+            const timelinePlayStatus = document.getElementById('timeline-play-status');
+
+            const modelRadios = Array.from(document.querySelectorAll('input[name="model-select"]'));
+
+            if (timelineChartCanvas) {
+                timelineChartCanvas.addEventListener('mouseleave', () => {
+                    timelineChartCanvas.style.cursor = 'default';
+                });
+            }
+
+            const MODEL_AVAILABLE_QUBITS = {
+                'MLP': [2, 3, 4, 6, 8],
+                'MLP (Set)': [2, 3, 4, 6, 8],
+                'GCN': [2, 3, 4, 6, 8],
+                'GAT': [2, 3, 4, 6, 8],
+            };
+
+            const MODEL_SCORE_DATA = {
+                labels: ['GCN', 'GAT', 'MLP(Set)', 'MLP'],
+                scores: [0.484, 0.293, 0.033, 0.101],
+            };
+
+            const getSelectedModel = () => {
+                const activeRadio = modelRadios.find(radio => radio.checked);
+                return activeRadio ? activeRadio.value : 'GCN';
+            };
+
+            const snapQubitsToSupported = (value, model) => {
+                const allowed = MODEL_AVAILABLE_QUBITS[model] || MODEL_AVAILABLE_QUBITS['GCN'];
+                if (allowed.includes(value)) {
+                    return value;
+                }
+                return allowed.reduce((closest, candidate) => {
+                    const diffCandidate = Math.abs(candidate - value);
+                    const diffClosest = Math.abs(closest - value);
+                    if (diffCandidate < diffClosest) {
+                        return candidate;
+                    }
+                    if (diffCandidate === diffClosest) {
+                        return candidate > closest ? candidate : closest;
+                    }
+                    return closest;
+                }, allowed[0]);
+            };
+
+            const updateQubitUI = (value) => {
+                qubitSlider.value = value;
+                qubitValue.textContent = value;
+            };
+
+            const ensureSupportedQubits = (model) => {
+                const current = parseInt(qubitSlider.value, 10);
+                const snapped = snapQubitsToSupported(current, model);
+                if (snapped !== current) {
+                    updateQubitUI(snapped);
+                }
+                return snapped;
+            };
+
+            let progressInterval = null;
+            let progressValue = 0;
+
+            const startProgress = () => {
+                progressValue = 0;
+                progressText.textContent = '0%';
+                progressText.classList.remove('hidden');
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                progressInterval = setInterval(() => {
+                    const increment = Math.floor(Math.random() * 8) + 3;
+                    progressValue = Math.min(progressValue + increment, 95);
+                    progressText.textContent = `${progressValue}%`;
+                    if (progressValue >= 95) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                }, 220);
+            };
+
+            const stopProgress = (success) => {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                progressValue = success ? 100 : 0;
+                progressText.textContent = `${progressValue}%`;
+                setTimeout(() => {
+                    progressText.classList.add('hidden');
+                }, 500);
+            };
 
             // --- Chart.js 인스턴스 ---
             let pulseChartInstance = null; 
+            let blochChartInstance = null;
+            let modelScoreChartInstance = null;
+            let timelineChartInstance = null;
             let currentPulseData = [];
+            let currentPulseMagnitudes = [];
+            let currentStoredEnergy = [];
+            let currentStepEnergyGain = [];
+            let currentChargePercent = [];
+            let currentTimeAxis = [];
+            let currentPulseTotalAmplitude = 0;
+            let currentPulsePeakAmplitude = 0;
+            let currentTimelineStepIndex = null;
+            let timelineBaseColors = [];
+            let timelineBarColors = [];
+            let timelinePlaybackInterval = null;
+            let timelinePlaybackActive = false;
 
             // 백엔드 서버 주소 (app.py가 실행되는 곳)
-            const API_ENDPOINT = 'http://127.0.0.1:5000/simulate';
+            const DEFAULT_API_BASE = 'http://127.0.0.1:5000';
+            const resolvedOrigin = (window.location.origin && window.location.origin !== 'null')
+                ? window.location.origin
+                : DEFAULT_API_BASE;
+            const API_ENDPOINT = `${resolvedOrigin.replace(/\/$/, '')}/simulate`;
+            window.lastTimeStep = null;
+            window.lastMaxEnergy = null;
 
             // 슬라이더 값 실시간 업데이트
             qubitSlider.addEventListener('input', (e) => {
-                qubitValue.textContent = e.target.value;
+                const desired = parseInt(e.target.value, 10);
+                const snapped = snapQubitsToSupported(desired, getSelectedModel());
+                if (snapped !== desired) {
+                    updateQubitUI(snapped);
+                } else {
+                    qubitValue.textContent = snapped;
+                }
             });
+
+            modelRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    ensureSupportedQubits(getSelectedModel());
+                });
+            });
+
+            if (timelinePlayToggle) {
+                timelinePlayToggle.addEventListener('click', () => {
+                    if (!Array.isArray(currentPulseData) || currentPulseData.length === 0) {
+                        return;
+                    }
+                    toggleTimelinePlayback();
+                });
+            }
+
+            if (modelScoreToggle) {
+                modelScoreToggle.addEventListener('change', () => {
+                    const container = modelScoreCanvas?.parentElement?.parentElement;
+                    if (container) {
+                        container.classList.toggle('hidden', !modelScoreToggle.checked);
+                    }
+                });
+            }
 
             strengthSlider.addEventListener('input', (e) => {
                 strengthValue.textContent = parseFloat(e.target.value).toFixed(1);
             });
 
+            renderModelScoreChart(MODEL_SCORE_DATA);
+
             // 시작 버튼 클릭 이벤트 (비동기 함수로 변경)
             startButton.addEventListener('click', async () => {
                 // 현재 설정 값 가져오기
-                const qubits = parseInt(qubitSlider.value, 10);
+                const model = getSelectedModel();
+                const qubits = ensureSupportedQubits(model);
                 const strength = parseFloat(strengthSlider.value);
-                const model = document.querySelector('input[name="model-select"]:checked').value;
 
                 // 로딩 상태 표시
                 startButton.disabled = true;
                 startButtonText.textContent = '모델 연산 중... (Calculating...)';
                 loadingSpinner.classList.remove('hidden');
                 errorMessage.style.display = 'none'; 
+                startProgress();
+                if (energyValueEl) energyValueEl.textContent = '결과 계산 중...';
+                if (energySubtextEl) energySubtextEl.textContent = '';
+                if (timeValueEl) timeValueEl.textContent = '결과 계산 중...';
+                if (paramsValueEl) paramsValueEl.textContent = '결과 계산 중...';
+                hideSuperabsorptionHighlight();
 
                 try {
                     // --- 실제 백엔드 연동 (Fetch API 사용) ---
@@ -298,6 +647,22 @@
 
                     // --- 결과 표시 ---
                     currentPulseData = data.optimalPulse || [];
+                    currentStoredEnergy = Array.isArray(data.storedEnergyTrajectory) ? data.storedEnergyTrajectory : [];
+                    currentStepEnergyGain = Array.isArray(data.stepEnergyGainTrajectory) ? data.stepEnergyGainTrajectory : [];
+                    currentChargePercent = Array.isArray(data.chargePercentTrajectory) ? data.chargePercentTrajectory : [];
+                    currentTimeAxis = Array.isArray(data.timeAxis)
+                        ? data.timeAxis
+                        : (Array.isArray(data.phaseTimeAxis) ? data.phaseTimeAxis : []);
+                    const timeStepValue = typeof data.timeStep === 'number' && Number.isFinite(data.timeStep)
+                        ? data.timeStep
+                        : null;
+                    window.lastTimeStep = timeStepValue;
+                    const maxEnergyValue = typeof data.maxEnergy === 'number' ? data.maxEnergy : Number(data.maxEnergy);
+                    window.lastMaxEnergy = Number.isFinite(maxEnergyValue) ? maxEnergyValue : qubits;
+                    const baselineEnergyValue = typeof data.baselineEnergy === 'number' ? data.baselineEnergy : Number(data.baselineEnergy);
+                    const superabsorptionGainValue = typeof data.superabsorptionGain === 'number' ? data.superabsorptionGain : Number(data.superabsorptionGain);
+                    const baselineEnergy = Number.isFinite(baselineEnergyValue) ? baselineEnergyValue : null;
+                    const superabsorptionGain = Number.isFinite(superabsorptionGainValue) ? superabsorptionGainValue : null;
 
                     // 1. 페이지 2 상단 요약 텍스트 업데이트
                     resultQubits.textContent = qubits;
@@ -306,25 +671,78 @@
 
                     // 2. 최적 펄스 차트 그리기
                     renderPulseChart(currentPulseData);
+                    renderBlochProjection(currentPulseData);
+                    renderPulseTimeline(currentPulseData);
 
                     // 3. 나머지 3개 결과 플롯 이미지 업데이트
-                    const energyText = `Final Energy: ${data.finalEnergy}`;
-                    const timeText = `Time: ${data.learningTime}s`;
-                    const paramsText = `Params: ${data.modelParams.toLocaleString()}`;
+                    const energyValue = typeof data.finalEnergy === 'number' && Number.isFinite(data.finalEnergy)
+                        ? data.finalEnergy
+                        : null;
+                    const energyDisplay = energyValue != null ? energyValue.toFixed(3) : 'N/A';
+                    if (energyValueEl) {
+                        energyValueEl.textContent = energyDisplay;
+                    }
+                    if (energySubtextEl) {
+                        energySubtextEl.textContent = '';
+                    }
+                    if (baselineEnergy != null && superabsorptionGain != null && baselineEnergy > 0) {
+                        const gainPercent = (superabsorptionGain - 1) * 100;
+                        const formattedPercent = `${gainPercent >= 0 ? '+' : ''}${gainPercent.toFixed(1)}%`;
+                        if (energySubtextEl) {
+                            energySubtextEl.textContent = `Baseline MLP: ${baselineEnergy.toFixed(3)} | Gain ${superabsorptionGain.toFixed(2)}× (${formattedPercent})`;
+                        }
+                        if (superabsorptionGain > 1.01) {
+                            showSuperabsorptionHighlight(`${model} 정책은 ${qubits} 큐비트에서 MLP 대비 ${formattedPercent} 높은 저장 에너지 (${energyDisplay} vs ${baselineEnergy.toFixed(3)})를 달성했습니다. → 초흡수 이득 ${superabsorptionGain.toFixed(2)}×`);
+                        }
+                        window.lastBaselineEnergy = baselineEnergy;
+                        window.lastSuperabsorptionGain = superabsorptionGain;
+                    } else {
+                        window.lastBaselineEnergy = undefined;
+                        window.lastSuperabsorptionGain = undefined;
+                    }
 
-                    imgEnergy.src = `https://placehold.co/400x300/EBF4FF/4A90E2?text=${encodeURIComponent(energyText)}`;
-                    imgTime.src = `https://placehold.co/400x300/E6F7F0/34A853?text=${encodeURIComponent(timeText)}`;
-                    imgParams.src = `https://placehold.co/400x300/FFF3E0/FBBC05?text=${encodeURIComponent(paramsText)}`;
+                    const learningTimeValue = typeof data.learningTime === 'number' && Number.isFinite(data.learningTime)
+                        ? data.learningTime
+                        : null;
+                    if (timeValueEl) {
+                        timeValueEl.textContent = learningTimeValue != null ? `${learningTimeValue.toFixed(2)} s` : 'N/A';
+                    }
+
+                    const paramsValue = typeof data.modelParams === 'number' && Number.isFinite(data.modelParams)
+                        ? data.modelParams
+                        : null;
+                    if (paramsValueEl) {
+                        paramsValueEl.textContent = paramsValue != null ? paramsValue.toLocaleString() : 'N/A';
+                    }
 
                     // 4. 페이지 전환
                     page1.classList.add('hidden');
                     page2.classList.remove('hidden');
+
+                    stopProgress(true);
+                    stopTimelinePlayback();
 
                     
 
 
                 } catch (error) {
                     console.error('Fetch Error:', error);
+                    currentPulseData = [];
+                    currentStoredEnergy = [];
+                    currentStepEnergyGain = [];
+                    currentChargePercent = [];
+                    currentTimeAxis = [];
+                    window.lastTimeStep = null;
+                    window.lastMaxEnergy = null;
+                    window.lastBaselineEnergy = undefined;
+                    window.lastSuperabsorptionGain = undefined;
+                    stopProgress(false);
+                    stopTimelinePlayback();
+                    hideSuperabsorptionHighlight();
+                    if (energyValueEl) energyValueEl.textContent = '데이터 로딩 실패';
+                    if (energySubtextEl) energySubtextEl.textContent = '';
+                    if (timeValueEl) timeValueEl.textContent = '데이터 로딩 실패';
+                    if (paramsValueEl) paramsValueEl.textContent = '데이터 로딩 실패';
                     errorMessage.textContent = `시뮬레이션 실패: ${error.message}. 'app.py'가 실행 중인지 확인하세요.`;
                     errorMessage.style.display = 'block';
                 } finally {
@@ -337,6 +755,27 @@
 
             // 돌아가기 버튼 클릭 이벤트
             backButton.addEventListener('click', () => {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                stopTimelinePlayback();
+                progressValue = 0;
+                progressText.textContent = '0%';
+                progressText.classList.add('hidden');
+                resetPulseInsights();
+                currentPulseData = [];
+                currentStoredEnergy = [];
+                currentStepEnergyGain = [];
+                currentChargePercent = [];
+                currentTimeAxis = [];
+                window.lastTimeStep = null;
+                window.lastMaxEnergy = null;
+                if (energyValueEl) energyValueEl.textContent = '데이터 대기 중';
+                if (energySubtextEl) energySubtextEl.textContent = '';
+                if (timeValueEl) timeValueEl.textContent = '데이터 대기 중';
+                if (paramsValueEl) paramsValueEl.textContent = '데이터 대기 중';
+                hideSuperabsorptionHighlight();
                 page2.classList.add('hidden');
                 page1.classList.remove('hidden');
                 
@@ -351,9 +790,50 @@
                     return;
                 }
                 try {
-                    let csvContent = "Time Step,Amplitude\n"; // 헤더
+                    const toNumber = (value) => {
+                        if (typeof value === 'number') {
+                            return Number.isFinite(value) ? value : null;
+                        }
+                        const parsed = Number(value);
+                        return Number.isFinite(parsed) ? parsed : null;
+                    };
+                    const toFixedOrEmpty = (value, digits) => Number.isFinite(value) ? value.toFixed(digits) : '';
+
+                    let csvContent = "Step,Time(s),Amplitude,StoredEnergy,StepEnergyGain,ChargePercent,BaselineEnergy,SuperabsorptionGain\n";
+                    const baselineEnergy = toNumber(window.lastBaselineEnergy);
+                    const superabsorptionGain = toNumber(window.lastSuperabsorptionGain);
+                    const timeStep = toNumber(window.lastTimeStep);
+                    const maxEnergy = toNumber(window.lastMaxEnergy);
+
                     currentPulseData.forEach((amplitude, index) => {
-                        csvContent += `${index},${amplitude}\n`;
+                        const ampVal = toNumber(amplitude);
+                        const timeVal = toNumber(currentTimeAxis[index]);
+                        const energyVal = toNumber(currentStoredEnergy[index]);
+                        const deltaVal = toNumber(currentStepEnergyGain[index]);
+                        const percentVal = toNumber(currentChargePercent[index]);
+
+                        const resolvedTime = Number.isFinite(timeVal)
+                            ? timeVal
+                            : (Number.isFinite(timeStep) ? (index + 1) * timeStep : null);
+                        const resolvedDelta = Number.isFinite(deltaVal)
+                            ? deltaVal
+                            : (Number.isFinite(energyVal) && index === 0 ? energyVal : null);
+                        const resolvedPercent = Number.isFinite(percentVal)
+                            ? percentVal
+                            : (Number.isFinite(energyVal) && Number.isFinite(maxEnergy) && maxEnergy > 0
+                                ? (energyVal / maxEnergy) * 100
+                                : null);
+
+                        csvContent += [
+                            index + 1,
+                            toFixedOrEmpty(resolvedTime, 6),
+                            toFixedOrEmpty(ampVal, 6),
+                            toFixedOrEmpty(energyVal, 6),
+                            toFixedOrEmpty(resolvedDelta, 6),
+                            toFixedOrEmpty(resolvedPercent, 4),
+                            toFixedOrEmpty(baselineEnergy, 6),
+                            toFixedOrEmpty(superabsorptionGain, 6)
+                        ].join(',') + "\n";
                     });
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement("a");
@@ -378,17 +858,18 @@
                     pulseChartInstance.destroy();
                 }
                 const labels = Array.from({ length: pulseData.length }, (_, i) => i);
+                const magnitudeData = pulseData.map(value => Math.abs(value));
                 pulseChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'Pulse Amplitude',
-                            data: pulseData,
+                            data: magnitudeData,
                             borderColor: 'rgb(54, 162, 235)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.25)',
                             borderWidth: 2,
-                            fill: true,
+                            fill: 'origin',
                             tension: 0.1,
                             pointRadius: 0,
                         }]
@@ -399,10 +880,507 @@
                         plugins: { legend: { display: false } },
                         scales: {
                             x: { title: { display: true, text: 'Time Step' } },
-                            y: { title: { display: true, text: 'Amplitude' } }
+                            y: { title: { display: true, text: '|Amplitude|' } }
                         }
                     }
                 });
+            }
+
+            function renderBlochProjection(pulseData, activeIndex = null) {
+                if (!blochChartCanvas) {
+                    return;
+                }
+
+                const ctx = blochChartCanvas.getContext('2d');
+                if (blochChartInstance) {
+                    blochChartInstance.destroy();
+                    blochChartInstance = null;
+                }
+
+                if (!Array.isArray(pulseData) || pulseData.length === 0) {
+                    if (ctx) {
+                        ctx.clearRect(0, 0, blochChartCanvas.width, blochChartCanvas.height);
+                    }
+                    return;
+                }
+
+                const circlePoints = Array.from({ length: 180 }, (_, index) => {
+                    const angle = (index / 179) * 2 * Math.PI;
+                    return {
+                        x: Math.cos(angle),
+                        y: Math.sin(angle),
+                    };
+                });
+
+                const magnitudes = pulseData.map(value => Math.abs(value));
+                const totalSteps = magnitudes.length;
+                const totalAmplitude = magnitudes.reduce((sum, value) => sum + value, 0);
+                const resolvedStepIndex = typeof activeIndex === 'number' && !Number.isNaN(activeIndex)
+                    ? Math.max(0, Math.min(activeIndex, totalSteps - 1))
+                    : (typeof currentTimelineStepIndex === 'number'
+                        ? Math.max(0, Math.min(currentTimelineStepIndex, totalSteps - 1))
+                        : totalSteps - 1);
+
+                const trajectory = [];
+                trajectory.push({ x: 0, y: 1, step: 0 });
+
+                let accumulated = 0;
+                const denominator = totalSteps > 1 ? totalSteps - 1 : 1;
+                magnitudes.forEach((amp, index) => {
+                    accumulated += amp;
+                    const theta = totalAmplitude === 0 ? 0 : Math.min(accumulated / totalAmplitude, 1) * Math.PI;
+                    const phi = totalSteps <= 1 ? 0 : (index / denominator) * 2 * Math.PI;
+                    const radius = Math.sin(theta);
+                    trajectory.push({
+                        x: radius * Math.cos(phi),
+                        y: Math.cos(theta),
+                        step: index + 1,
+                    });
+                });
+
+                const highlightIndex = Math.max(1, Math.min(resolvedStepIndex + 1, trajectory.length - 1));
+                const displayedTrajectory = trajectory.slice(0, highlightIndex + 1);
+                const currentPoint = displayedTrajectory.length ? displayedTrajectory[displayedTrajectory.length - 1] : null;
+
+                blochChartInstance = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Bloch Surface',
+                                data: circlePoints,
+                                showLine: true,
+                                borderColor: 'rgba(148, 163, 184, 0.6)',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                            },
+                            {
+                                label: 'Trajectory',
+                                data: displayedTrajectory,
+                                showLine: true,
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                            },
+                            {
+                                label: 'Current State',
+                                data: currentPoint ? [currentPoint] : [],
+                                pointRadius: 6,
+                                pointBackgroundColor: 'rgb(250, 204, 21)',
+                                pointBorderColor: 'rgb(202, 138, 4)',
+                                pointBorderWidth: 1.5,
+                            }
+                        ]
+                    },
+                    options: {
+                        animation: false,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                suggestedMin: -1.1,
+                                suggestedMax: 1.1,
+                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                                ticks: { display: false },
+                                title: { display: true, text: 'X-axis Projection', color: '#4b5563', font: { size: 11 } },
+                            },
+                            y: {
+                                suggestedMin: -1.1,
+                                suggestedMax: 1.1,
+                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                                ticks: { display: false },
+                                title: { display: true, text: 'Z-axis Projection', color: '#4b5563', font: { size: 11 } },
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        if (context.dataset.label === 'Trajectory') {
+                                            const stepNumber = context.raw?.step ?? context.dataIndex;
+                                            if (stepNumber === 0) {
+                                                return 'Start state (step 0)';
+                                            }
+                                            return `Step ${stepNumber}: x=${context.parsed.x.toFixed(2)}, z=${context.parsed.y.toFixed(2)}`;
+                                        }
+                                        if (context.dataset.label === 'Current State') {
+                                            const stepNumber = context.raw?.step;
+                                            if (stepNumber === 0) {
+                                                return `Current (start): x=${context.parsed.x.toFixed(2)}, z=${context.parsed.y.toFixed(2)}`;
+                                            }
+                                            return `Current (step ${stepNumber}): x=${context.parsed.x.toFixed(2)}, z=${context.parsed.y.toFixed(2)}`;
+                                        }
+                                        return null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderPulseTimeline(pulseData) {
+                if (!timelineChartCanvas) {
+                    return;
+                }
+
+                if (timelineChartInstance) {
+                    timelineChartInstance.destroy();
+                    timelineChartInstance = null;
+                }
+
+                currentPulseMagnitudes = [];
+                currentPulseTotalAmplitude = 0;
+                currentPulsePeakAmplitude = 0;
+                currentTimelineStepIndex = null;
+                timelineBaseColors = [];
+                timelineBarColors = [];
+                if (timelineCurrentStep) {
+                    timelineCurrentStep.textContent = '-';
+                }
+                if (timelineTotalSteps) {
+                    timelineTotalSteps.textContent = '-';
+                }
+                if (timelinePeakAmp) {
+                    timelinePeakAmp.textContent = '-';
+                }
+                if (timelineProgressBar) {
+                    timelineProgressBar.style.width = '0%';
+                    timelineProgressBar.style.background = 'linear-gradient(90deg, rgba(148,163,184,0.45) 0%, rgba(148,163,184,0.2) 100%)';
+                }
+
+                stopTimelinePlayback();
+
+                if (!Array.isArray(pulseData) || pulseData.length === 0) {
+                    renderBlochProjection([], null);
+                    const ctx = timelineChartCanvas.getContext('2d');
+                    if (ctx) {
+                        ctx.clearRect(0, 0, timelineChartCanvas.width || 0, timelineChartCanvas.height || 0);
+                    }
+                    return;
+                }
+
+                const magnitudes = pulseData.map(value => Math.abs(value));
+                const totalSteps = pulseData.length;
+                const totalAmplitude = magnitudes.reduce((sum, value) => sum + value, 0);
+                const maxAmplitude = magnitudes.length ? Math.max(...magnitudes) : 0;
+
+                currentPulseMagnitudes = magnitudes;
+                currentPulseTotalAmplitude = totalAmplitude;
+                currentPulsePeakAmplitude = maxAmplitude;
+
+                timelineBaseColors = magnitudes.map((amp) => {
+                    const normalized = maxAmplitude > 0 ? amp / maxAmplitude : 0;
+                    const alpha = 0.25 + normalized * 0.55;
+                    return `rgba(59,130,246,${alpha.toFixed(3)})`;
+                });
+                timelineBarColors = [...timelineBaseColors];
+
+                const ctx = timelineChartCanvas.getContext('2d');
+                if (!ctx) {
+                    return;
+                }
+
+                timelineChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: magnitudes.map((_, index) => index + 1),
+                        datasets: [{
+                            data: magnitudes,
+                            backgroundColor: timelineBarColors,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            maxBarThickness: 24,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        onClick: (event, elements) => {
+                            if (!elements || elements.length === 0) {
+                                return;
+                            }
+                            const bar = elements[0];
+                            if (typeof bar.index === 'number') {
+                                setCurrentTimelineStep(bar.index);
+                            }
+                        },
+                        onHover: (event, elements) => {
+                            if (!event) {
+                                return;
+                            }
+                            const target = event.native?.target || timelineChartCanvas;
+                            if (!target) {
+                                return;
+                            }
+                            target.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+                        },
+                        scales: {
+                            x: {
+                                display: false,
+                                grid: { display: false },
+                            },
+                            y: {
+                                display: false,
+                                beginAtZero: true,
+                                grid: { display: false },
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: (items) => (items.length ? `Step ${items[0].dataIndex + 1}` : ''),
+                                    label: (context) => `|Amplitude| ${Number(context.parsed.y ?? context.parsed.x ?? 0).toFixed(3)}`,
+                                },
+                            },
+                        },
+                    },
+                });
+
+                if (timelineTotalSteps) {
+                    timelineTotalSteps.textContent = totalSteps;
+                }
+                if (timelinePeakAmp) {
+                    timelinePeakAmp.textContent = maxAmplitude.toFixed(2);
+                }
+
+                setCurrentTimelineStep(totalSteps - 1);
+            }
+
+            function setCurrentTimelineStep(stepIndex) {
+                const totalSteps = Array.isArray(currentPulseData) ? currentPulseData.length : 0;
+                if (!timelineChartCanvas || totalSteps === 0) {
+                    return;
+                }
+
+                const magnitudes = currentPulseMagnitudes.length === totalSteps
+                    ? currentPulseMagnitudes
+                    : currentPulseData.map(value => Math.abs(value));
+                const peakAmplitude = currentPulsePeakAmplitude || (magnitudes.length ? Math.max(...magnitudes) : 0);
+                const totalAmplitude = currentPulseTotalAmplitude || magnitudes.reduce((sum, value) => sum + value, 0);
+
+                const clamped = Math.max(0, Math.min(stepIndex, totalSteps - 1));
+                currentTimelineStepIndex = clamped;
+
+                if (timelineChartInstance && timelineBaseColors.length === totalSteps) {
+                    timelineBarColors = timelineBaseColors.map((color, index) => (
+                        index === clamped ? 'rgba(251, 191, 36, 0.9)' : color
+                    ));
+                    timelineChartInstance.data.datasets[0].backgroundColor = timelineBarColors;
+                    timelineChartInstance.update('none');
+                }
+
+                if (timelineCurrentStep) {
+                    timelineCurrentStep.textContent = clamped + 1;
+                }
+                if (timelineTotalSteps) {
+                    timelineTotalSteps.textContent = totalSteps;
+                }
+                if (timelinePeakAmp) {
+                    timelinePeakAmp.textContent = peakAmplitude.toFixed(2);
+                }
+
+                if (timelineProgressBar) {
+                    const cumulative = magnitudes.slice(0, clamped + 1).reduce((sum, value) => sum + value, 0);
+                    const ratio = totalAmplitude > 0 ? Math.round((cumulative / totalAmplitude) * 100) : 0;
+                    const easedRatio = ratio > 0 ? Math.max(6, ratio) : 0;
+                    timelineProgressBar.style.width = `${easedRatio}%`;
+                    timelineProgressBar.style.background = ratio > 0
+                        ? 'linear-gradient(90deg, rgba(59,130,246,0.9) 0%, rgba(79,70,229,0.9) 100%)'
+                        : 'linear-gradient(90deg, rgba(148,163,184,0.45) 0%, rgba(148,163,184,0.2) 100%)';
+                }
+
+                renderBlochProjection(currentPulseData, clamped);
+            }
+
+            function resetPulseInsights() {
+                if (blochChartInstance) {
+                    blochChartInstance.destroy();
+                    blochChartInstance = null;
+                }
+                if (blochChartCanvas) {
+                    const ctx = blochChartCanvas.getContext('2d');
+                    if (ctx) {
+                        ctx.clearRect(0, 0, blochChartCanvas.width, blochChartCanvas.height);
+                    }
+                }
+                currentStoredEnergy = [];
+                currentStepEnergyGain = [];
+                currentChargePercent = [];
+                currentTimeAxis = [];
+                renderPulseTimeline([]);
+            }
+
+            function stopTimelinePlayback(updateLabel = true) {
+                if (timelinePlaybackInterval) {
+                    clearInterval(timelinePlaybackInterval);
+                    timelinePlaybackInterval = null;
+                }
+                timelinePlaybackActive = false;
+                if (updateLabel && timelinePlayIcon && timelinePlayStatus) {
+                    timelinePlayIcon.textContent = '▶';
+                    timelinePlayStatus.textContent = '정지';
+                }
+            }
+
+            function toggleTimelinePlayback() {
+                if (timelinePlaybackActive) {
+                    stopTimelinePlayback();
+                    return;
+                }
+
+                const totalSteps = Array.isArray(currentPulseData) ? currentPulseData.length : 0;
+                if (totalSteps === 0) {
+                    return;
+                }
+
+                timelinePlaybackActive = true;
+                if (timelinePlayIcon && timelinePlayStatus) {
+                    timelinePlayIcon.textContent = '⏸';
+                    timelinePlayStatus.textContent = '재생 중';
+                }
+
+                const startIndex = 0;
+                setCurrentTimelineStep(startIndex);
+
+                timelinePlaybackInterval = setInterval(() => {
+                    if (!timelinePlaybackActive) {
+                        stopTimelinePlayback();
+                        return;
+                    }
+
+                    const nextIndex = typeof currentTimelineStepIndex === 'number' ? currentTimelineStepIndex + 1 : 0;
+                    if (nextIndex >= totalSteps) {
+                        stopTimelinePlayback();
+                        setCurrentTimelineStep(totalSteps - 1);
+                        return;
+                    }
+
+                    setCurrentTimelineStep(nextIndex);
+                }, 450);
+            }
+
+            function showSuperabsorptionHighlight(message) {
+                if (!superabsorptionHighlight || !superabsorptionText) {
+                    return;
+                }
+                superabsorptionText.textContent = message;
+                superabsorptionHighlight.classList.remove('hidden');
+            }
+
+            function hideSuperabsorptionHighlight() {
+                if (superabsorptionHighlight) {
+                    superabsorptionHighlight.classList.add('hidden');
+                }
+                if (superabsorptionText) {
+                    superabsorptionText.textContent = '';
+                }
+                window.lastBaselineEnergy = undefined;
+                window.lastSuperabsorptionGain = undefined;
+            }
+
+            function renderModelScoreChart(modelScores) {
+                if (!modelScoreCanvas) {
+                    return;
+                }
+
+                const ctx = modelScoreCanvas.getContext('2d');
+                if (modelScoreChartInstance) {
+                    modelScoreChartInstance.destroy();
+                    modelScoreChartInstance = null;
+                }
+
+                const colors = ['#3B82F6', '#F59E0B', '#34D399', '#F87171'];
+                const borderColors = colors.map(color => color);
+                const labels = modelScores.labels;
+                const data = modelScores.scores;
+
+                const valueLabelPlugin = {
+                    id: 'valueLabel',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        ctx.save();
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                            const meta = chart.getDatasetMeta(datasetIndex);
+                            meta.data.forEach((bar, index) => {
+                                const value = dataset.data[index];
+                                if (value == null) {
+                                    return;
+                                }
+                                const position = bar.tooltipPosition();
+                                ctx.fillStyle = '#111827';
+                                ctx.font = '600 12px "Inter", "Nanum Gothic", sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(value.toFixed(3), position.x, position.y - 8);
+                            });
+                        });
+                        ctx.restore();
+                    }
+                };
+
+                modelScoreChartInstance = new Chart(ctx, {
+                    plugins: [valueLabelPlugin],
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "S' Score",
+                            data,
+                            backgroundColor: colors,
+                            borderColor: borderColors,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `Score: ${context.parsed.y.toFixed(3)}`
+                                }
+                            },
+                            datalabels: false,
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#4b5563', font: { size: 12 } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: 0.6,
+                                ticks: {
+                                    color: '#4b5563',
+                                    callback: value => value.toFixed(1)
+                                },
+                                title: {
+                                    display: true,
+                                    text: "종합 점수 S'",
+                                    color: '#4b5563',
+                                    font: { size: 12 }
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.3)' }
+                            }
+                        },
+                        animation: {
+                            duration: 650,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+
+                const chartContainer = modelScoreCanvas.parentElement?.parentElement;
+                if (chartContainer && modelScoreToggle) {
+                    chartContainer.classList.toggle('hidden', !modelScoreToggle.checked);
+                }
             }
 
             
